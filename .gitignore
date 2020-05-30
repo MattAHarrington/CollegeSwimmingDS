@@ -3,3 +3,5 @@ graphs/*
 .RData
 .RHistory
 *.pyc
+.idea
+.vscode
