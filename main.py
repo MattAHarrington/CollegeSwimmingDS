@@ -1,12 +1,12 @@
-import urllib2
 import json
-import sqlite3
 import random
+import sqlite3
 import sys
-import parameters
+from urllib.request import urlopen
+from urllib.error import HTTPError
 from bs4 import BeautifulSoup
-import re
-import string
+
+import parameters
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # College Swimming Spring Break Project 2015                                Kevin Wylder #
@@ -15,7 +15,7 @@ import string
 # for more detail on the structure of the database, the global variables in this file,   #
 # or the collegeswimming.com website structure, see the README                           #
 #                                                                                        #
-# From here on out, 90 character width isn't guarenteed                                   #
+# From here on out, 90 character width isn't guarenteed                                  #
  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # setup search and output parameters
@@ -70,11 +70,11 @@ def requestSwimmer(swimmerId, event):
 	swimmerEvents = []
 	url = swimmerUrl.format(swimmerId)
 	try:
-		page = urllib2.urlopen(url)
+		page = urlopen(url)
 		source = page.read()
-	except urllib2.HTTPError as e:
-		print e
-		return ([],"")
+	except HTTPError as e:
+		print(e)
+		return ([], "")
 	soup = BeautifulSoup(source, 'html.parser')
 	selection = soup.find("select", class_="form-control input-sm js-event-id-selector")
 	if selection:
@@ -84,7 +84,7 @@ def requestSwimmer(swimmerId, event):
 
 	if event in swimmerEvents:
 		url = swimmerEventUrl.format(swimmerId, event)
-		page = urllib2.urlopen(url)
+		page = urlopen(url)
 		source = page.read()
 		eventHistory = json.loads(source)
 		for swim in eventHistory:
@@ -101,10 +101,10 @@ def getRoster(teamId, season, gender):
 	'gets a list of (Name, swimmerId) tuples and the team name for a given teamId'
 	url = rosterUrl.format(teamId, season, gender)
 	try:
-		page = urllib2.urlopen(url)
+		page = urlopen(url)
 		source = page.read()
-	except urllib2.HTTPError as e:
-		print e
+	except HTTPError as e:
+		print(e)
 		return ([],"")
 	soup = BeautifulSoup(source, 'html.parser')
 	team["name"] = soup.find("h1", class_="c-toolbar__title").text
@@ -113,7 +113,7 @@ def getRoster(teamId, season, gender):
 	team["roster"] = []
 	for tableRow in tableBody.find_all("tr"):
 		swimmerId = tableRow.td.a["href"].split("/")[-1]
-		swimmerName = normalizeName(unicode(tableRow.td.strong.text))
+		swimmerName = normalizeName(str(tableRow.td.strong.text))
 		team["roster"].append( (swimmerName, swimmerId) )
 	return team
 
@@ -142,7 +142,7 @@ cursor.execute(createNameTable.format("Teams"))
 # retrieve and add the times to the database
 for simpleYear in range(yearStart, yearEnd):   # for each competition year
 	seasonString = str(simpleYear) + "-" + str(simpleYear + 1)
-	print "Collecting Season {}".format(seasonString)
+	print("Collecting Season {}".format(seasonString))
 	searchStartTimestamp = parameters.convertToTimestamp(simpleYear, seasonLineMonth, seasonLineDay)
 	searchEndTimestamp = parameters.convertToTimestamp(simpleYear + 1, seasonLineMonth, seasonLineDay)
 	teamCounter = 0
@@ -176,14 +176,14 @@ for simpleYear in range(yearStart, yearEnd):   # for each competition year
 			percent = float(teamCounter) / float(len(teamsToPull) * 2)
 			showLoadingBar(percent)
 	# finish the loading bar
-	print "#" * 50
-	print ""
+	print("#" * 50)
+	print("")
 	connection.commit()
 
 getEventTimes = "select time from Swims where event='{}{}' and date>{} and date<{}"
 updateWithScaled = "update Swims set scaled={} where event='{}{}' and date>{} and date<{} and time={}"
 # fill out the scaled column
-print "Scaling times"
+print("Scaling times")
 # convert each swim to a season z-score
 for simpleYear in range(yearStart, yearEnd):   # for each competition year
 	seasonStartTimestamp = parameters.convertToTimestamp(simpleYear, seasonLineMonth, seasonLineDay)
@@ -193,23 +193,23 @@ for simpleYear in range(yearStart, yearEnd):   # for each competition year
 			cursor.execute(getEventTimes.format(gender, event, seasonStartTimestamp, seasonEndTimestamp))
 			times = [x[0] for x in cursor.fetchall()]
 			average = sum(times) / len(times)
-			print "average for {}{} in {}: {}".format(gender, event, simpleYear, average)
+			print("average for {}{} in {}: {}".format(gender, event, simpleYear, average))
 			sd = (sum([(x - average)**2 for x in times]) / len(times)) ** .5 # sqrt(sum of rediduals squared normalized to n)
 			updateList = [(x, (x - average) / sd) for x in times]
 			for update in updateList:
 				command = updateWithScaled.format(update[1], gender, event, seasonStartTimestamp, seasonEndTimestamp, update[0])
 				cursor.execute(command)
 connection.commit()
-print "scaled"
+print("scaled")
 
 
-print ""
-print "Finding taper swims"
+print("")
+print("Finding taper swims")
 for simpleYear in range(yearStart, yearEnd):
 	seasonStartTimestamp = parameters.convertToTimestamp(simpleYear, seasonLineMonth, seasonLineDay)
 	seasonEndTimestamp = parameters.convertToTimestamp(simpleYear + 1, seasonLineMonth, seasonLineDay)
-	print "Season {}-{}".format(simpleYear, simpleYear + 1)
-	print "From timestamp {} to {}".format(seasonStartTimestamp, seasonEndTimestamp)
+	print("Season {}-{}".format(simpleYear, simpleYear + 1))
+	print("From timestamp {} to {}".format(seasonStartTimestamp, seasonEndTimestamp))
 	for teamId in teamsToPull:
 		# get a list of all the days this team swam
 		cursor.execute("select date from Swims where team={} and date>{} and date<{}".format(teamId, seasonStartTimestamp, seasonEndTimestamp))
@@ -239,17 +239,17 @@ for simpleYear in range(yearStart, yearEnd):
 				cursor.execute("update Swims set taper=2 where team={} and date={}".format(teamId, date[1]))
 
 
-print "Finding outliers"
+print("Finding outliers")
 cursor.execute("update Swims set taper=3 where scaled>3")    # a lazy solution. I'm tired
 
 
 connection.commit()
 connection.close()
-print ""
-print ""
-print "###################"
-print "# script complete #"
-print "###################"
-print "Check {} for results".format(databaseFileName)
-print "Written by Kevin Wylder"
-print "contact at wylderkevin@gmail.com"
+print("")
+print("")
+print("###################")
+print("# script complete #")
+print("###################")
+print("Check {} for results".format(databaseFileName))
+print("Written by Kevin Wylder")
+print("contact at wylderkevin@gmail.com")

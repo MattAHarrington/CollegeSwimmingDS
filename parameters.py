@@ -12,10 +12,17 @@ class Parameters:
 	# main.py parameters
 	eventsToPull = ["5200Y"]
 	gendersToPull = ["F"]
-#	teamsToPull = [21,114,209,227,230,319,377,434,457]
-	teamsToPull = [114,209,227,230,319,377,434,457]
-	yearStart = 2016
-	yearEnd = 2017
+	ptn = 477
+	hrv = 134
+	yle = 376
+	brn = 17
+	col = 283
+	pen = 416
+	cor = 258
+	drt = 272
+	teamsToPull = [ptn, hrv, yle, brn, col, pen, cor, drt]
+	yearStart = 2018
+	yearEnd = 2019
 
 	# analysis parameters
 	eventHistograms = ["F5200Y"]
