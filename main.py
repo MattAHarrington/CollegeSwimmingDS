@@ -20,14 +20,14 @@ import parameters
 
 # setup search and output parameters
 parameters = parameters.Parameters()
-databaseFileName = parameters.databaseFileName
-eventsToPull = parameters.eventsToPull
-gendersToPull = parameters.gendersToPull
-teamsToPull = parameters.teamsToPull
-yearStart = parameters.yearStart
-yearEnd = parameters.yearEnd
-seasonLineMonth = parameters.seasonLineMonth
-seasonLineDay = parameters.seasonLineDay
+databaseFileName = parameters.database_filename 
+eventsToPull = parameters.events_to_pull
+gendersToPull = parameters.genders_to_pull
+teamsToPull = parameters.teams_to_pull
+yearStart = parameters.year_start
+yearEnd = parameters.year_end
+seasonLineMonth = parameters.season_line_month
+seasonLineDay = parameters.season_line_day
 
 swimmerUrl = "https://www.collegeswimming.com/swimmer/{}"
 swimmerEventUrl = "https://www.collegeswimming.com/swimmer/{}/times/byeventid/{}"
@@ -63,9 +63,9 @@ def showLoadingBar(percent):
 	sys.stdout.write(("#" * chars) + (" " * (50 - chars)) + " {:10.2f}%\r".format(100 * percent))
 	sys.stdout.flush()
 
+# returns this event's swims for the swimmerId in the format (date, time)
 def requestSwimmer(swimmerId, event):
 
-	'returns this event\'s swims for the swimmerId in the format (date, time)'
 	swimmerData = []
 	swimmerEvents = []
 	url = swimmerUrl.format(swimmerId)
@@ -96,9 +96,10 @@ def requestSwimmer(swimmerId, event):
 				swimmerData.append(swimTuple)
 	return swimmerData
 
+# gets a list of (Name, swimmerId) tuples and the team name for a given teamId
 def getRoster(teamId, season, gender):
+
 	team = {}
-	'gets a list of (Name, swimmerId) tuples and the team name for a given teamId'
 	url = rosterUrl.format(teamId, season, gender)
 	try:
 		page = urlopen(url)
@@ -155,8 +156,10 @@ for simpleYear in range(yearStart, yearEnd):   # for each competition year
 	percent = 0
 	for teamId in teamsToPull:   # for each team
 		for gender in gendersToPull:  # for each gender
+			
 			# pull the roster for this season and gender
 			team = getRoster(teamId, seasonString, gender)
+			
 			# add team to the Teams table
 			if not team["name"] is "":  # if there wasn't a 404 error
 				matches = cursor.execute(checkNameTable.format("Teams", teamId))
@@ -171,12 +174,15 @@ for simpleYear in range(yearStart, yearEnd):   # for each competition year
 				matches = cursor.execute(checkNameTable.format("Swimmers", swimmer[1]))
 				if matches.fetchone() is None:
 					cursor.execute(addToNameTable.format("Swimmers", sqlsafe(swimmer[0]), swimmer[1]))
-				for event in eventsToPull:   # for each of this swimmer's event we're searching
+				
+				# for each of this swimmer's event we're searching
+				for event in eventsToPull:  
 					swims = requestSwimmer(swimmer[1], event)
 					for swim in swims:   # for each qualified race
 						# add this race to the database
 						command = insertSwimCommand.format(swimmer[1], teamId, swim[1], 0, gender, event, swim[0], 0, snapshotId)
 						cursor.execute(command)
+			
 			# print the loading bar
 			teamCounter += 1
 			percent = float(teamCounter) / float(len(teamsToPull) * 2)
@@ -208,15 +214,17 @@ for simpleYear in range(yearStart, yearEnd):   # for each competition year
 connection.commit()
 print("scaled")
 
-
 print("")
 print("Finding taper swims")
 for simpleYear in range(yearStart, yearEnd):
 	seasonStartTimestamp = parameters.convert_to_timestamp(simpleYear, seasonLineMonth, seasonLineDay)
 	seasonEndTimestamp = parameters.convert_to_timestamp(simpleYear + 1, seasonLineMonth, seasonLineDay)
+
 	print("Season {}-{}".format(simpleYear, simpleYear + 1))
 	print("From timestamp {} to {}".format(seasonStartTimestamp, seasonEndTimestamp))
+
 	for teamId in teamsToPull:
+		
 		# get a list of all the days this team swam
 		cursor.execute("select date from Swims where team={} and date>{} and date<{}".format(teamId, seasonStartTimestamp, seasonEndTimestamp))
 		dates = cursor.fetchall()
@@ -234,6 +242,7 @@ for simpleYear in range(yearStart, yearEnd):
 				averageScore += meetTuple[0]
 				meetScores.append(meetTuple)
 		averageScore /= len(dates)
+		
 		for date in meetScores:
 			# a taper swim is a swim at a meet with a below average z-score for that season
 			# this can be assumed because, given that a team has dual meets and taper meets
