@@ -90,7 +90,7 @@ def requestSwimmer(swimmerId, event):
 		for swim in eventHistory:
 			# convert the date string to epoch
 			splitDate = swim["dateofswim"].split("-")
-			date = parameters.convertToTimestamp(splitDate[0], splitDate[1], splitDate[2])
+			date = parameters.convert_to_timestamp(splitDate[0], splitDate[1], splitDate[2])
 			if date > searchStartTimestamp and date < searchEndTimestamp:  # defined below the timestamp function and updated every year loop
 				swimTuple = (date, swim["time"])
 				swimmerData.append(swimTuple)
@@ -109,11 +109,17 @@ def getRoster(teamId, season, gender):
 	soup = BeautifulSoup(source, 'html.parser')
 	team["name"] = soup.find("h1", class_="c-toolbar__title").text
 
-	tableBody = soup.find("table", class_="c-table-clean c-table-clean--middle c-table-clean--fixed table table-hover").tbody
+	table = soup.find("table", class_="c-table-clean c-table-clean--middle table table-hover") 
+	table_body = table.tbody
 	team["roster"] = []
-	for tableRow in tableBody.find_all("tr"):
-		swimmerId = tableRow.td.a["href"].split("/")[-1]
-		swimmerName = normalizeName(str(tableRow.td.strong.text))
+	for table_row in table_body.find_all("tr"):
+
+		cols = table_row.find_all('td')
+		swimmerId = cols[1].a['href'].split('/')[-1]
+		
+		col_data = [col.text.strip() for col in cols]
+		swimmerName = normalizeName(str(col_data[1]))
+
 		team["roster"].append( (swimmerName, swimmerId) )
 	return team
 
@@ -143,8 +149,8 @@ cursor.execute(createNameTable.format("Teams"))
 for simpleYear in range(yearStart, yearEnd):   # for each competition year
 	seasonString = str(simpleYear) + "-" + str(simpleYear + 1)
 	print("Collecting Season {}".format(seasonString))
-	searchStartTimestamp = parameters.convertToTimestamp(simpleYear, seasonLineMonth, seasonLineDay)
-	searchEndTimestamp = parameters.convertToTimestamp(simpleYear + 1, seasonLineMonth, seasonLineDay)
+	searchStartTimestamp = parameters.convert_to_timestamp(simpleYear, seasonLineMonth, seasonLineDay)
+	searchEndTimestamp = parameters.convert_to_timestamp(simpleYear + 1, seasonLineMonth, seasonLineDay)
 	teamCounter = 0
 	percent = 0
 	for teamId in teamsToPull:   # for each team
@@ -186,8 +192,8 @@ updateWithScaled = "update Swims set scaled={} where event='{}{}' and date>{} an
 print("Scaling times")
 # convert each swim to a season z-score
 for simpleYear in range(yearStart, yearEnd):   # for each competition year
-	seasonStartTimestamp = parameters.convertToTimestamp(simpleYear, seasonLineMonth, seasonLineDay)
-	seasonEndTimestamp = parameters.convertToTimestamp(simpleYear + 1, seasonLineMonth, seasonLineDay)
+	seasonStartTimestamp = parameters.convert_to_timestamp(simpleYear, seasonLineMonth, seasonLineDay)
+	seasonEndTimestamp = parameters.convert_to_timestamp(simpleYear + 1, seasonLineMonth, seasonLineDay)
 	for event in eventsToPull:
 		for gender in gendersToPull: # for each event
 			cursor.execute(getEventTimes.format(gender, event, seasonStartTimestamp, seasonEndTimestamp))
@@ -206,8 +212,8 @@ print("scaled")
 print("")
 print("Finding taper swims")
 for simpleYear in range(yearStart, yearEnd):
-	seasonStartTimestamp = parameters.convertToTimestamp(simpleYear, seasonLineMonth, seasonLineDay)
-	seasonEndTimestamp = parameters.convertToTimestamp(simpleYear + 1, seasonLineMonth, seasonLineDay)
+	seasonStartTimestamp = parameters.convert_to_timestamp(simpleYear, seasonLineMonth, seasonLineDay)
+	seasonEndTimestamp = parameters.convert_to_timestamp(simpleYear + 1, seasonLineMonth, seasonLineDay)
 	print("Season {}-{}".format(simpleYear, simpleYear + 1))
 	print("From timestamp {} to {}".format(seasonStartTimestamp, seasonEndTimestamp))
 	for teamId in teamsToPull:
@@ -251,5 +257,3 @@ print("###################")
 print("# script complete #")
 print("###################")
 print("Check {} for results".format(databaseFileName))
-print("Written by Kevin Wylder")
-print("contact at wylderkevin@gmail.com")
