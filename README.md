@@ -1,12 +1,26 @@
-Written by Kevin Wylder
+## Data Science with CollegeSwimming
+TL;DR:
+1. Change `parameters.py` to consider the years, swims, etc. you want. 
+2. Run:
+``` 
+    python3 main.py
+    python3 analysis.py
+```
+3. Look in `graphs/` for fun data.
 
-TL;DR - Set the parameters in parameters.py. Then run the following commands
-            python main.py
-            python analysis.py
-        and look in the graphs directory for fun data.
-        You can check the database for your own analysis, but you'd have to RTFM.
+### Authors:
+Original code written by Kevin Wylder. 
+Adapted to python 3, with additional analysis by Matt Harrington.
 
-Files:
+### Populating the database
+Run main.py with `python3 main.py`
+
+### Modifying Process
+The main process run in `main.py` grabs attributes from `parameters.py`
+
+
+### Files:
+
 parameters.py
     A python class that controls main.py and analysis.py. This is just a list of editable
     parameters. If you change the Global Parameters, delete everything and restart main.py
@@ -18,8 +32,7 @@ parameters.py
     main.py parameters -
         eventsToPull: an array of events that will be searched for in each swimmer
         gendersToPull: an array of which genders to search for. "M" and/or "F"
-        teamsToPull: an array of teamIds that will be searched for. You can use the range
-                     function, but this will
+        teamsToPull: an array of teamIds that will be searched for. You can use the range function
         yearStart: the starting year of this search
         yearEnd: the ending year of this search
     analysis.py parameters -
